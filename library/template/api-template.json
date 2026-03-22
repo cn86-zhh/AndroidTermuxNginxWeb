@@ -1,0 +1,17 @@
+{
+    "name": "Termux Nginx",
+    "version": "1.0.0",
+    "description": "一个简单的API响应模板",
+    "endpoints": [
+        {
+            "path": "/api/status",
+            "method": "GET",
+            "description": "获取服务器状态"
+        },
+        {
+            "path": "/api/info",
+            "method": "GET",
+            "description": "获取系统信息"
+        }
+    ]
+}

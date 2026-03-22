@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termux Nginx - Android上的强大Web服务器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(240, 147, 251, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #e0e0e0;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .github-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #333 0%, #111 100%);
+            color: white;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.5),
+                inset 0 2px 10px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .github-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.4),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.5),
+                inset 0 2px 10px rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .hero {
+            padding: 150px 0 100px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 
+                0 4px 30px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(102, 126, 234, 0.3);
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 18px 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 10px 30px rgba(102, 126, 234, 0.4),
+                0 5px 15px rgba(118, 75, 162, 0.3),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 
+                0 20px 50px rgba(102, 126, 234, 0.6),
+                0 10px 25px rgba(118, 75, 162, 0.4),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .library-btn {
+            display: inline-block;
+            padding: 18px 50px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 10px 30px rgba(240, 147, 251, 0.4),
+                0 5px 15px rgba(245, 87, 108, 0.3),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin-left: 20px;
+        }
+
+        .library-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 
+                0 20px 50px rgba(240, 147, 251, 0.6),
+                0 10px 25px rgba(245, 87, 108, 0.4),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-buttons {
+            margin-top: 40px;
+        }
+
+        .important-note {
+            background: linear-gradient(135deg, rgba(255, 100, 100, 0.1) 0%, rgba(255, 50, 50, 0.05) 100%);
+            border: 2px solid rgba(255, 100, 100, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 60px auto 0;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 
+                0 15px 45px rgba(255, 100, 100, 0.2),
+                0 10px 30px rgba(255, 50, 50, 0.1),
+                inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                inset 0 2px 15px rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .important-note:hover {
+            animation: notePulse 2s ease-in-out infinite;
+            transform: translateY(-5px);
+            box-shadow: 
+                0 20px 60px rgba(255, 100, 100, 0.3),
+                0 15px 40px rgba(255, 50, 50, 0.2),
+                0 0 30px rgba(255, 100, 100, 0.3),
+                inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                inset 0 2px 15px rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 100, 100, 0.6);
+        }
+
+        @keyframes notePulse {
+            0%, 100% {
+                box-shadow: 
+                    0 15px 45px rgba(255, 100, 100, 0.2),
+                    0 10px 30px rgba(255, 50, 50, 0.1),
+                    inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                    inset 0 2px 15px rgba(255, 255, 255, 0.05);
+                border-color: rgba(255, 100, 100, 0.3);
+            }
+            50% {
+                box-shadow: 
+                    0 25px 75px rgba(255, 100, 100, 0.4),
+                    0 20px 50px rgba(255, 50, 50, 0.3),
+                    0 0 40px rgba(255, 100, 100, 0.4),
+                    inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                    inset 0 2px 15px rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 100, 100, 0.8);
+            }
+        }
+
+        .important-note::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b 0%, #ff4757 100%);
+            box-shadow: 0 0 20px rgba(255, 100, 100, 0.5);
+        }
+
+        .important-note h3 {
+            font-size: 24px;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 0 15px rgba(255, 100, 100, 0.5);
+        }
+
+        .important-note p {
+            font-size: 16px;
+            color: #f8f8f8;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .important-note p strong {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .library-btn {
+                margin-left: 0;
+                margin-top: 20px;
+            }
+            .hero-buttons {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .nav-links {
+                gap: 15px;
+            }
+            .github-link {
+                padding: 8px 15px;
+                font-size: 14px;
+            }
+            .important-note {
+                margin: 40px auto 0;
+                padding: 20px;
+                margin-left: 20px;
+                margin-right: 20px;
+            }
+            .important-note h3 {
+                font-size: 20px;
+            }
+            .important-note p {
+                font-size: 14px;
+            }
+        }
+
+        .features {
+            padding: 100px 0;
+            background: #0a0a0a;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 60px;
+            color: #e0e0e0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+            padding: 40px;
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                0 5px 20px rgba(102, 126, 234, 0.1),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.3),
+                inset 0 2px 10px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-15px) scale(1.02);
+            box-shadow: 
+                0 25px 60px rgba(0, 0, 0, 0.5),
+                0 15px 35px rgba(102, 126, 234, 0.2),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.3),
+                inset 0 2px 10px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.4);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.8));
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        .feature-card p {
+            color: #a0a0a0;
+            font-size: 16px;
+        }
+
+        .installation {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f0c29 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .installation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(240, 147, 251, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(245, 87, 108, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .installation .section-title {
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .installation .section-desc {
+            text-align: center;
+            font-size: 18px;
+            color: #a0a0a0;
+            margin-bottom: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .install-steps {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .install-steps::before {
+            content: '';
+            position: absolute;
+            left: 50px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #667eea 0%, #f093fb 50%, #f5576c 100%);
+            transform: translateX(-50%);
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-number {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 
+                0 10px 30px rgba(102, 126, 234, 0.4),
+                0 5px 15px rgba(118, 75, 162, 0.3),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            margin-right: 30px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .step-number::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -30px;
+            width: 30px;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-50%);
+        }
+
+        .step-content {
+            flex: 1;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+            backdrop-filter: blur(15px);
+            padding: 35px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 15px 45px rgba(0, 0, 0, 0.4),
+                inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                inset 0 2px 15px rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .step:hover {
+            transform: translateX(10px);
+        }
+
+        .step:hover .step-number {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 
+                0 15px 45px rgba(102, 126, 234, 0.6),
+                0 10px 25px rgba(118, 75, 162, 0.4),
+                inset 0 -3px 10px rgba(0, 0, 0, 0.2),
+                inset 0 3px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .step:hover .step-content {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 25px 60px rgba(0, 0, 0, 0.5),
+                0 15px 35px rgba(102, 126, 234, 0.2),
+                inset 0 -2px 15px rgba(0, 0, 0, 0.3),
+                inset 0 2px 15px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .step:hover .step-content::before {
+            opacity: 1;
+        }
+
+        .step-content h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .step-content h4 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #e0e0e0;
+        }
+
+        .step-content p {
+            color: #a0a0a0;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .step-content code {
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.4) 100%);
+            padding: 18px 24px;
+            border-radius: 16px;
+            display: block;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #00ff88;
+            margin-top: 15px;
+            box-shadow: 
+                inset 0 3px 15px rgba(0, 0, 0, 0.6),
+                inset 0 -3px 15px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-content code::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .highlight-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .highlight-link:hover {
+            color: #f093fb;
+            text-shadow: 0 0 10px rgba(240, 147, 251, 0.5);
+        }
+
+        .highlight-link::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea 0%, #f093fb 100%);
+            transition: width 0.3s ease;
+        }
+
+        .highlight-link:hover::after {
+            width: 100%;
+        }
+
+        .benefits {
+            padding: 100px 0;
+            background: #0a0a0a;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .benefit-item {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border-radius: 24px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.2),
+                inset 0 2px 10px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .benefit-item:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 
+                0 20px 50px rgba(0, 0, 0, 0.4),
+                inset 0 -2px 10px rgba(0, 0, 0, 0.2),
+                inset 0 2px 10px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .benefit-number {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .benefit-item h4 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #e0e0e0;
+        }
+
+        .benefit-item p {
+            color: #a0a0a0;
+        }
+
+        footer {
+            background: linear-gradient(145deg, #000000 0%, #0a0a0a 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(102, 126, 234, 0.1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        footer p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 42px;
+            }
+
+            .hero p {
+                font-size: 18px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">Termux Nginx</div>
+                <div class="nav-links">
+                    <a href="#features">功能特点</a>
+                    <a href="#installation">安装指南</a>
+                    <a href="#benefits">优势</a>
+                    <a href="https://www.github.com/cn86-zhh/AndroidTermuxNginxWeb" target="_blank" class="github-link">GitHub</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>在Android上运行Nginx</h1>
+            <p>使用Termux，轻松在您的Android设备上部署强大的Web服务器</p>
+            <div class="hero-buttons">
+                <a href="#installation" class="cta-button">立即开始</a>
+                <a href="library.html" class="library-btn">📚 资源库</a>
+            </div>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="important-note">
+            <h3>⚠️ 重要提示</h3>
+            <p><strong>无需ROOT权限</strong>，即可部署在您的移动端。我们暂时不考虑iPhone端部署这个服务。我们计划在未来将OpenClaw部署在Termux内部，但愿一切顺利！</p>
+        </div>
+    </div>
+
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">核心功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>高性能</h3>
+                    <p>Nginx以其卓越的性能和低内存占用而闻名，在Android设备上也能流畅运行</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>移动端部署</h3>
+                    <p>通过Termux，您可以在任何Android设备上快速搭建Web服务器环境</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>快速启动</h3>
+                    <p>简单的安装和配置过程，几分钟内即可让您的服务器运行起来</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>灵活配置</h3>
+                    <p>完整的Nginx配置支持，满足各种Web服务需求</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>多功能</h3>
+                    <p>支持反向代理、负载均衡、静态文件服务等丰富功能</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>安全可靠</h3>
+                    <p>内置安全特性，保护您的Web应用免受常见攻击</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation" id="installation">
+        <div class="container">
+            <h2 class="section-title">安装指南</h2>
+            <p class="section-desc">按照以下步骤快速部署您的Termux Nginx服务器</p>
+            <div class="install-steps">
+                <div class="step">
+                    <div class="step-number">0</div>
+                    <div class="step-content">
+                        <h3>准备工作: 安装Termux sv服务</h3>
+                        <code>pkg install termux-services -y</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>安装Termux</h4>
+                        <p>从F-Droid或GitHub下载并安装Termux应用</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>更新软件包</h4>
+                        <code>pkg update && pkg upgrade</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>安装Nginx</h4>
+                        <code>pkg install nginx</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>启动Nginx服务</h4>
+                        <code>nginx</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>管理Nginx服务</h4>
+                        <code>sv (stop | disable | start | status | enable) nginx</code>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h4>访问服务器</h4>
+                        <p>在浏览器中访问 <a href="http://localhost:8080" class="highlight-link">http://localhost:8080</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="benefits" id="benefits">
+        <div class="container">
+            <h2 class="section-title">为什么选择Termux Nginx</h2>
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div class="benefit-number">100%</div>
+                    <h4>免费开源</h4>
+                    <p>完全免费，源代码开放</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-number">24/7</div>
+                    <h4>随时可用</h4>
+                    <p>手机就是您的服务器</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-number">0</div>
+                    <h4>零成本</h4>
+                    <p>无需额外硬件投入</p>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-number">∞</div>
+                    <h4>无限可能</h4>
+                    <p>支持各种Web应用</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2024 Termux Nginx - 让Web服务触手可及</p>
+        </div>
+    </footer>
+</body>
+</html>

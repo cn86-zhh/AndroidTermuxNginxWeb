@@ -1,0 +1,25 @@
+{
+    "name": "termux-nginx-library",
+    "version": "1.0.0",
+    "description": "Termux Nginx 资源库 - 支持动态扫描library目录",
+    "main": "api-server.js",
+    "scripts": {
+        "start": "node api-server.js",
+        "dev": "node api-server.js",
+        "test": "node -e \"console.log('Server is ready')\""
+    },
+    "keywords": [
+        "termux",
+        "nginx",
+        "library",
+        "api"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "express": "^4.18.2"
+    },
+    "engines": {
+        "node": ">=14.0.0"
+    }
+}
